@@ -1,4 +1,4 @@
-#Purpose of the script:  scan files in folder and insert records to sql table 
+#Features: file direcotry scan; insrt records to sql  and auto file clean up, file only  
 #test job can be scheduled in window task scheduler 
 #powershell -command O:test\copyFilest.ps1 2>&1 > O:\SQLFTPEST\script\pslog.txt
 function SqlInsert($file, $loadIdx)
