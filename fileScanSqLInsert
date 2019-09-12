@@ -1,0 +1,136 @@
+#Purpose of the script:  scan files in folder and insert records to sql table 
+#test job can be scheduled in window task scheduler 
+#powershell -command O:test\copyFilest.ps1 2>&1 > O:\SQLFTPEST\script\pslog.txt
+function SqlInsert($file, $loadIdx)
+{
+    #gather insert systntact 
+ 
+    $file=get-item $filepath
+    $file.LastWriteTime
+    $file.CreationTime
+    $file.Length
+    $file.Name
+    $loadIdx
+    $insertStr="INSERT INTO [dbo].testdb
+                       ([FilePath]
+                       ,testidx
+                       ,[FileSize]
+                       ,[FileLastWriteDate]
+                       ,[FileCreateDate]
+                       ,[FileName]
+                       )
+                       values('"+
+                       $filepath+"',"+
+                        $loadidx+", "+
+                       $file.Length.ToString()+", '"+
+                        $file.LastWriteTime.ToString()+"','"+
+                       $file.CreationTime.ToString()+"','"+
+                       $file.Name+"'"+
+                       ")"
+   
+         $insertStr
+       # insert to sQL file scan table 
+         #inser to db
+        $DBServer = "testsql01\testsql01"
+        $DBName = testdb
+        $sqlConnection = New-Object System.Data.SqlClient.SqlConnection
+        $sqlConnection.ConnectionString = "Server=$DBServer;Database=$DBName;Integrated Security=True;"
+
+        $sqlConnection.Open()
+
+        #Quit if the SQL connection didn't open properly.
+        if ($sqlConnection.State -ne [Data.ConnectionState]::Open) {
+
+            "Connection to DB is not open."
+
+            Exit
+
+        }
+         $sqlCommand = New-Object System.Data.SqlClient.SqlCommand
+         $sqlCommand.Connection = $sqlConnection
+
+        $sqlCommand.CommandText = "SET NOCOUNT ON; " + $insertStr
+
+        # Run the query and get the scope ID back into $InsertedID
+              $InsertedID = $sqlCommand.ExecuteScalar()
+
+        # Write to the console
+         "Inserted row ID $InsertedID for file " + $file.Name
+        
+
+        if ($sqlConnection.State -eq [Data.ConnectionState]::Open) {
+
+    $sqlConnection.Close()
+
+}
+}
+
+
+
+
+function fileprocessing($srcFile, $desFile, $loadidx)
+{
+     $srcFile
+     $desFile
+     $loadidx
+
+    if (([System.IO.File]::Exists($srcFile)) -and (![System.IO.File]::Exists($desFile)))
+    {
+        Copy-Item -Path $srcFile -Destination $desFile 
+        "file copied"
+    }
+    else
+    {
+       "source file missing or des file already exist"
+       return 
+     }
+
+
+    if([System.IO.File]::Exists($desFile))
+    {
+        $file=get-item $desFile
+           #insert to Sql file scan 
+        SqlInsert $file $loadIdx
+    }
+    else
+    {
+            $desFile +"is not avaialle, possible error in copyng"
+            return 
+    }
+        
+}
+
+
+ $mainCode= 
+ {
+     $curdateStr=(Get-Date).ToString( "yyyyMMdd")
+     $curdateStr
+ 
+    $srcFile="testdir\testdir_"+$curdateStr+".txt"
+    $desFile="testdirdesc\testdir_"+$curdateStr+".txt"
+    $loadidx=111
+     fileprocessing $srcFile $desFile $loadidx
+
+ 
+
+ }
+ $fileClean=
+ {
+
+     $path="testdrive:\SQLFTPEST"
+     $limit = (Get-Date).AddDays(-5)
+     # Delete any empty directories left behind after deleting the old files.
+     #!$_.PSIsContainer  identify the direcotry
+     Get-ChildItem -Path $path  | Where-Object {  !$_.PSIsContainer -and $_.CreationTime -lt $limit -and $_.Name -Notlike 'readme.txt' } |Remove-Item
+ }
+  
+  #Invoke-Command -ScriptBlock   $mainCode
+  Invoke-Command  -ScriptBlock  $fileClean
+  
+ 
+
+
+
+ 
+ 
+ 
