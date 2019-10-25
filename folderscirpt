@@ -1,0 +1,6 @@
+#get file files that iis 0 under folder
+
+Get-ChildItem -path \\Rcmitftp\sqlftp\ESS\KeyBankFiles\FESP.WWESTON.PAY.WWESTON.MMAC.* -recurse | where-object {($_.Length ) -ne 0 }
+
+
+#-ne not equal , #-gt greater -lt less -eq equa;
